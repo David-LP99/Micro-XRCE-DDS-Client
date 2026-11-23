@@ -25,7 +25,8 @@ bool uxr_read_submessage_header(
         uint8_t* flags)
 {
     ucdr_align_to(ub, 4);
-    bool ready_to_read = ucdr_buffer_remaining(ub) >= SUBHEADER_SIZE;
+    // A buffer in error no longer advances, so reading on would return the previous header again.
+    bool ready_to_read = !ucdr_buffer_has_error(ub) && ucdr_buffer_remaining(ub) >= SUBHEADER_SIZE;
     if (ready_to_read)
     {
         uxr_deserialize_submessage_header(ub, submessage_id, flags, length);
