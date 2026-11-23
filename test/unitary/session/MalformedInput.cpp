@@ -399,3 +399,56 @@ TEST_F(MalformedInputTest, InfoWithNonAgentConfigIsRejected)
 
     EXPECT_EQ(NO_PONG_STATUS, session.on_pong_flag);
 }
+
+/*
+ * GHSA-2qvc-vcxg-m2pg: a message on an input reliable stream the session doesn't have must be ignored.
+ * No ACKNACK may be built for it, because building one reads the stream's state out of bounds.
+ */
+TEST_F(MalformedInputTest, UnknownReliableStream)
+{
+    // The message is built with the header `81 ff 00 00` plus a valid submessage to reach the reliable branch.
+    const std::vector<uint8_t> datagram = {
+        0x81, 0xFF, 0x00, 0x00,     // header (advisory, verbatim): session 0x81, stream 0xFF (reliable, index 127), seq 0
+        0x0A, 0x01, 0x05, 0x00,     // filler: ACKNACK submessage, little endian, length 5
+        0x00, 0x00,                 // first_unacked_seq_num
+        0x00, 0x00,                 // nack_bitmap
+        0x80                        // stream_id: output reliable stream 0x80 (absent)
+    };
+
+    feed(datagram);
+
+    EXPECT_EQ(0, sent_messages);
+
+    // This problem is not specific to 0xFF: any reliable stream past the ones created fails the same way.
+    // Stream 0x81 is index 1, one past the single input reliable stream (UXR_CONFIG_MAX_INPUT_RELIABLE_STREAMS is 1).
+    const std::vector<uint8_t> datagram2 = {
+        0x81, 0x81, 0x00, 0x00,     // header: session 0x81, stream 0x81 (reliable, index 1), seq 0
+        0x0A, 0x01, 0x05, 0x00,     // filler: ACKNACK submessage, little endian, length 5
+        0x00, 0x00,                 // first_unacked_seq_num
+        0x00, 0x00,                 // nack_bitmap
+        0x80                        // stream_id: output reliable stream 0x80 (absent)
+    };
+
+    feed(datagram2);
+
+    EXPECT_EQ(0, sent_messages);
+}
+
+/*
+ * Guard: a message on the input reliable stream the session does have is still acknowledged,
+ * with exactly one ACKNACK.
+ */
+TEST_F(MalformedInputTest, KnownReliableStreamStillAcks)
+{
+    const std::vector<uint8_t> datagram = {
+        0x81, 0x80, 0x00, 0x00,     // header: session 0x81, stream 0x80 (reliable, index 0), seq 0
+        0x0A, 0x01, 0x05, 0x00,     // ACKNACK submessage, little endian, length 5
+        0x00, 0x00,                 // first_unacked_seq_num
+        0x00, 0x00,                 // nack_bitmap
+        0x80                        // stream_id: output reliable stream 0x80 (absent)
+    };
+
+    feed(datagram);
+
+    EXPECT_EQ(1, sent_messages);
+}
