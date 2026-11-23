@@ -902,7 +902,10 @@ void read_stream(
                     read_submessage_list(session, &next_mb, stream_id);
                 }
             }
-            write_submessage_acknack(session, stream_id);
+            if (stream)
+            {
+                write_submessage_acknack(session, stream_id);
+            }
             break;
         }
         default:
