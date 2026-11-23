@@ -235,7 +235,9 @@ void uxr_print_message(
 
             case SUBMESSAGE_ID_INFO:
             {
+                // No storage for strings: zeroing leaves their pointers NULL, so a string in the INFO is rejected.
                 INFO_Payload payload;
+                memset(&payload, 0, sizeof(payload));
                 uxr_deserialize_INFO_Payload(&ub, &payload);
                 print_info_submessage(color, &payload);
                 break;

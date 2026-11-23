@@ -20,6 +20,8 @@
 #include <uxr/client/profile/multithread/multithread.h>
 #include "../../profile/shared_memory/shared_memory_internal.h"
 
+#include <string.h>
+
 #ifdef UCLIENT_PROFILE_SHARED_MEMORY
 #define PROFILE_SHARED_MEMORY_ADD_SIZE 21
 #else
@@ -1107,7 +1109,9 @@ void read_submessage_info(
         uxrSession* session,
         ucdrBuffer* submessage)
 {
+    // No storage for strings: zeroing leaves their pointers NULL, so a string in the INFO is rejected.
     INFO_Payload info_payload;
+    memset(&info_payload, 0, sizeof(info_payload));
 
     bool success = true;
 

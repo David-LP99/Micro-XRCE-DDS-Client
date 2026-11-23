@@ -192,7 +192,10 @@ bool read_info_message(
         CallbackData* callback)
 {
     bool is_succeed = false;
+
+    // No storage for strings: zeroing leaves their pointers NULL, so a string in the INFO is rejected.
     INFO_Payload payload;
+    memset(&payload, 0, sizeof(payload));
 
     if (uxr_deserialize_discovery_INFO_Payload(ub, &payload))
     {

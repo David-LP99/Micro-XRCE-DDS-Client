@@ -2,6 +2,28 @@
 #include <string.h>
 
 //==================================================================
+//                             PRIVATE
+//==================================================================
+
+/*
+ * The string members of these types are bare `char*`: the caller must
+ * point them at storage of at least UXR_STRING_SIZE_MAX bytes before
+ * decoding. A NULL target means the caller has no storage for it, so
+ * the decode fails instead of copying the string through it.
+ */
+static bool deserialize_string_with_storage(
+        ucdrBuffer* buffer,
+        char* string)
+{
+    if (NULL == string)
+    {
+        buffer->error = true;
+        return false;
+    }
+    return ucdr_deserialize_string(buffer, string, UXR_STRING_SIZE_MAX);
+}
+
+//==================================================================
 //                             PUBLIC
 //==================================================================
 bool uxr_serialize_Time_t(
@@ -252,7 +274,7 @@ bool uxr_deserialize_TransportLocatorString(
         TransportLocatorString* output)
 {
     bool ret = true;
-    ret &= ucdr_deserialize_string(buffer, output->value, UXR_STRING_SIZE_MAX);
+    ret &= deserialize_string_with_storage(buffer, output->value);
     return ret;
 }
 
@@ -361,8 +383,8 @@ bool uxr_deserialize_Property(
         Property* output)
 {
     bool ret = true;
-    ret &= ucdr_deserialize_string(buffer, output->name, UXR_STRING_SIZE_MAX);
-    ret &= ucdr_deserialize_string(buffer, output->value, UXR_STRING_SIZE_MAX);
+    ret &= deserialize_string_with_storage(buffer, output->name);
+    ret &= deserialize_string_with_storage(buffer, output->value);
     return ret;
 }
 
@@ -511,10 +533,10 @@ bool uxr_deserialize_OBJK_Representation3Formats(
         switch (output->format)
         {
             case DDS_XRCE_REPRESENTATION_BY_REFERENCE:
-                ret &= ucdr_deserialize_string(buffer, output->_.object_reference, UXR_STRING_SIZE_MAX);
+                ret &= deserialize_string_with_storage(buffer, output->_.object_reference);
                 break;
             case DDS_XRCE_REPRESENTATION_AS_XML_STRING:
-                ret &= ucdr_deserialize_string(buffer, output->_.xml_string_represenatation, UXR_STRING_SIZE_MAX);
+                ret &= deserialize_string_with_storage(buffer, output->_.xml_string_represenatation);
                 break;
             case DDS_XRCE_REPRESENTATION_IN_BINARY:
                 ret &= uxr_deserialize_BinarySequence_t(buffer, &output->_.binary_representation);
@@ -560,10 +582,10 @@ bool uxr_deserialize_OBJK_RepresentationRefAndXMLFormats(
         switch (output->format)
         {
             case DDS_XRCE_REPRESENTATION_BY_REFERENCE:
-                ret &= ucdr_deserialize_string(buffer, output->_.object_name, UXR_STRING_SIZE_MAX);
+                ret &= deserialize_string_with_storage(buffer, output->_.object_name);
                 break;
             case DDS_XRCE_REPRESENTATION_AS_XML_STRING:
-                ret &= ucdr_deserialize_string(buffer, output->_.xml_string_represenatation, UXR_STRING_SIZE_MAX);
+                ret &= deserialize_string_with_storage(buffer, output->_.xml_string_represenatation);
                 break;
             default:
                 break;
@@ -609,7 +631,7 @@ bool uxr_deserialize_OBJK_RepresentationBinAndXMLFormats(
                 ret &= uxr_deserialize_BinarySequence_t(buffer, &output->_.binary_representation);
                 break;
             case DDS_XRCE_REPRESENTATION_AS_XML_STRING:
-                ret &= ucdr_deserialize_string(buffer, output->_.string_represenatation, UXR_STRING_SIZE_MAX);
+                ret &= deserialize_string_with_storage(buffer, output->_.string_represenatation);
                 break;
             default:
                 break;
